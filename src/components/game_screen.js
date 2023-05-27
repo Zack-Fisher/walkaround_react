@@ -3,16 +3,27 @@ import React from 'react';
 import { useEntityContext } from '../providers/entity_provider';
 import { PhysicsProvider } from '../providers/physics_provider';
 import { KeyboardProvider } from '../providers/keyboard_provider';
+import HUD from './hud';
 
 const GameScreen = () => {
     const { entities, add_entity, remove_entity, query_entities, update_entity } = useEntityContext();
 
     if (entities === undefined) return null;
+    // render the HUD layered over the game, then all the entities in the game
     return (
         <>
-            <PhysicsProvider>
-                <KeyboardProvider>
-        <div>
+        <HUD />
+
+<PhysicsProvider>
+    <KeyboardProvider>
+        <div style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'black',
+        }}>
            {
                 entities.map(entity => {
                     if (!entity) return null;
@@ -35,8 +46,8 @@ const GameScreen = () => {
                 })
             }
         </div>
-                </KeyboardProvider>
-            </PhysicsProvider>
+    </KeyboardProvider>
+</PhysicsProvider>
         </>
     );
 };

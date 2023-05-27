@@ -1,21 +1,21 @@
 import React, { useContext } from "react";
 import { createContext } from "react";
 import { useState } from "react";
-import { make_player } from "../components/player";
-import { make_npc } from "../components/npc";
-import { make_item } from "../components/item";
+import { make_npc } from "../components/game_objects/npc";
+import { make_item } from "../components/game_objects/item";
 
 const EntityContext = createContext();
 
 export const EntityProvider = ({children}) => {
     const [entities, setEntities] = useState([
-        make_player(0, 0),
-        make_npc(100, 100),
         make_item(500, 200),
+        make_npc(60, 60, "hello brother"),
     ]);
 
     const add_entity = (entity) => {
         setEntities([...entities, entity]);
+
+        return entity.id;
     }
 
     const remove_entity = (id) => {

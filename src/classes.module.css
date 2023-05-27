@@ -1,0 +1,7 @@
+
+/*for dom entities that inherit the position of the parent.*/
+.inherit {
+    position: 'relative';
+    left: 0;
+    top: 0;
+}
