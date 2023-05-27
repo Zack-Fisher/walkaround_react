@@ -1,11 +1,26 @@
-import React from "react";
-import { useEntity } from "./entity";
-import { PhysicalEntityData } from "../classes";
+import React, { useEffect } from "react";
+import {pipe, base_factory_mixin, entity_mixin, physical_mixin, label_mixin} from "../factory";
+import { PhysTypes } from "../providers/physics_provider";
 
-const Item = () => {
-    const {self} = useEntity();
+import PubSub from "pubsub-js";
+import { useEntityContext } from "../providers/entity_provider";
+import { NPC_MIXIN } from "./npc";
+import { PLAYER_MIXIN } from "./player";
 
-    if (self.box === undefined) return null;
+const Item = ({self, remove_self}) => {
+    const {has_all_mixins} = useEntityContext();
+
+    useEffect(() => {
+        const token = PubSub.subscribe(PhysTypes.JUST_COLLIDING, (msg, data) => {
+            if (data.one === self.id) {
+                if (has_all_mixins(data.two, [PLAYER_MIXIN])) {
+                    remove_self();
+                }
+            }
+        });
+
+        return () => { PubSub.unsubscribe(token) };
+    }, [self, has_all_mixins, remove_self]);
 
     return (
         <div
@@ -15,17 +30,19 @@ const Item = () => {
             top: self.box.y,
             width: self.box.w,
             height: self.box.h,
-            background: self.color,
+            background: 'yellow',
         }}
         ></div>
     );
 }
 
-export class ItemData extends PhysicalEntityData {
-    static component_fn = Item;
+export const ITEM_MIXIN = 'o_item';
 
-    constructor(x = 50, y = 50, color = "yellow") {
-        super(x, y, 50, 50);
-        this.color = color;
-    }
+export const make_item = (x, y) => {
+    return pipe(
+        base_factory_mixin,
+        entity_mixin(Item),
+        physical_mixin(x, y, 50, 50),
+        label_mixin(ITEM_MIXIN),
+    )();
 }

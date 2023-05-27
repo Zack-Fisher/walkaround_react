@@ -7,7 +7,7 @@ import { Ticker } from './components/ticker';
 function App() {
   return (
     <div className="App">
-        <Ticker fps={60} />
+        <Ticker fps={60} phys_fps={30} />
         <EntityProvider>
             <GameScreen />
         </EntityProvider>

@@ -1,9 +1,7 @@
-// Player.js
 import React from 'react';
 
-import { useEffect, useCallback } from 'react';
-import { useEntity } from './entity';
-import { PhysicalEntityData } from '../classes';
+import { useEffect } from 'react';
+import { base_factory_mixin, entity_mixin, label_mixin, mover_mixin, physical_mixin, pipe } from '../factory';
 
 import { useEntityContext } from '../providers/entity_provider';
 import { PhysTypes, usePhysics } from '../providers/physics_provider';
@@ -12,35 +10,35 @@ import PubSub from 'pubsub-js';
 import { useKeyboard } from '../providers/keyboard_provider';
 import { UPDATE } from './ticker';
 import { Vector2 } from '../vec';
+import { NPC_MIXIN } from './npc';
+import { ITEM_MIXIN } from './item';
 
-const Player = () => {
-    const {self, update_self} = useEntity();
-
-    const {type_from_id} = useEntityContext();
-
-    const {collisions_list} = usePhysics();
-
-    const {isKeyJustDown, isKeyDown} = useKeyboard();
+const Player = ({ self, update_self }) => {
+    const { has_all_mixins } = useEntityContext();
+    const { collisions_list } = usePhysics();
+    const { isKeyJustDown, isKeyDown } = useKeyboard();
 
     useEffect(() => {
         const token = PubSub.subscribe(PhysTypes.JUST_COLLIDING, (msg, data) => {
             if (data.one === self.id) {
-                if (type_from_id(data.two) === 'NPCData')
-                {
+                if (has_all_mixins(data.two, [NPC_MIXIN])) {
                     console.log('Player is colliding with NPC ', data.two);
+                }
+                if (has_all_mixins(data.two, [ITEM_MIXIN])) {
+                    console.log('Player is colliding with Item ', data.two)
                 }
             }
         });
 
-        return () => {PubSub.unsubscribe(token)};
-    }, [self, type_from_id]);
+        return () => { PubSub.unsubscribe(token) };
+    }, [self, has_all_mixins]);
 
     useEffect(() => {
         const interact = () => {
             // interact
             if (isKeyJustDown('z')) {
                 collisions_list(self.id).forEach(other_id => {
-                    if (type_from_id(other_id) === 'NPCData') {
+                    if (has_all_mixins(other_id, [NPC_MIXIN])) {
                         console.log('Player is interacting with NPC ', other_id);
                     }
                 })
@@ -69,7 +67,7 @@ const Player = () => {
             // apply friction
             final_vel = final_vel.mul(self.friction);
 
-            update_self({velocity: final_vel, box: self.box.translate(self.velocity)});
+            update_self({ velocity: final_vel, box: self.box.translate(self.velocity) });
         }
 
         const token = PubSub.subscribe(UPDATE, (msg, data) => {
@@ -78,7 +76,7 @@ const Player = () => {
             interact();
         });
 
-        return () => {PubSub.unsubscribe(token)};
+        return () => { PubSub.unsubscribe(token) };
     })
 
     return (
@@ -94,14 +92,14 @@ const Player = () => {
     )
 }
 
-export class PlayerData extends PhysicalEntityData {
-    static component_fn = Player;
+export const PLAYER_MIXIN = 'o_player';
 
-    constructor(start_x, start_y) {
-        super(start_x, start_y, 50, 50);
-
-        this.friction = 0.6;
-        this.velocity = new Vector2(0, 0);
-        this.acceleration = 9;
-    }
+export const make_player = (x, y) => {
+    return pipe(
+        base_factory_mixin,
+        entity_mixin(Player),
+        physical_mixin(x, y, 32, 64),
+        mover_mixin(1.5, 0.7),
+        label_mixin(PLAYER_MIXIN),
+    )();
 }

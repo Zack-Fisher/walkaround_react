@@ -1,8 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useEntityContext } from './entity_provider';
-import { PhysicalEntityData } from '../classes';
 import PubSub from 'pubsub-js';
-import { PlayerData } from '../components/player';
+import { PHYS_UPDATE } from '../components/ticker';
+import { PHYSICAL_MIXIN } from '../factory';
 
 export const PhysTypes = {
     FINISHED_COLLIDING: 'finished_colliding',
@@ -26,7 +26,7 @@ const just_colliding = (entity_one_id, entity_two_id) => {
 export const PhysicsContext = createContext();
 
 export const PhysicsProvider = ({ children, fps }) => {
-    const { entities } = useEntityContext();
+    const { entities, has_all_mixins, and_query } = useEntityContext();
 
     const [collisionState, setCollisionState] = useState({});
 
@@ -53,10 +53,11 @@ export const PhysicsProvider = ({ children, fps }) => {
         );
     }, [entities]);
 
-    // send messages to child entities and components using pubsub lines for each type of physics message.
+    // handle the physics tick, subscribe to the tick line
     useEffect(() => {
-        const interval = setInterval(() => {
-            const phys_entities = entities.filter(entity => entity instanceof PhysicalEntityData);
+        const token = PubSub.subscribe(PHYS_UPDATE, (msg, data) => {
+            // query for everything with a box collider in the world.
+            const phys_entities = and_query([PHYSICAL_MIXIN]);
             let newCollisionState = {};
 
             phys_entities.forEach((entity, i) => {
@@ -80,10 +81,10 @@ export const PhysicsProvider = ({ children, fps }) => {
             });
 
             setCollisionState(newCollisionState);
-        }, 1000 / fps);
+        });
 
-        return () => clearInterval(interval);
-    }, [entities, fps, collisionState, is_colliding]);
+        return () => {PubSub.unsubscribe(token)};
+    });
 
     return (
         <PhysicsContext.Provider value={{ is_colliding, collisions_list }}>

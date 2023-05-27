@@ -1,18 +1,17 @@
 import React, { useContext } from "react";
 import { createContext } from "react";
 import { useState } from "react";
-import { PlayerData } from "../components/player";
-import { NPCData } from "../components/npc";
-import { ItemData } from "../components/item";
+import { make_player } from "../components/player";
+import { make_npc } from "../components/npc";
+import { make_item } from "../components/item";
 
 const EntityContext = createContext();
 
 export const EntityProvider = ({children}) => {
     const [entities, setEntities] = useState([
-        new PlayerData(),
-        new NPCData(100, 100),
-        new NPCData(200, 200),
-        new ItemData(300, 300),
+        make_player(0, 0),
+        make_npc(100, 100),
+        make_item(500, 200),
     ]);
 
     const add_entity = (entity) => {
@@ -23,14 +22,23 @@ export const EntityProvider = ({children}) => {
         setEntities(entities.filter(entity => entity.id !== id));
     }
 
-    const query_entities = (query) => {
-        return entities.filter(query);
+    // return the array with all the mixins.
+    const or_query = (mixin_list) => {
+        return entities.filter(entity => entity.has_one_mixin(mixin_list));
+    }
+    const and_query = (mixin_list) => {
+        return entities.filter(entity => entity.has_all_mixins(mixin_list));
     }
 
-    const type_from_id = (id) => {
+    const has_one_mixin = (id, mixin_list) => {
         const entity = entities.find(entity => entity.id === id);
-        if (!entity) return null;
-        return entity.constructor.name;
+        if (!entity) return false;
+        return entity.has_one_mixin(mixin_list);
+    }
+    const has_all_mixins = (id, mixin_list) => {
+        const entity = entities.find(entity => entity.id === id);
+        if (!entity) return false;
+        return entity.has_all_mixins(mixin_list);
     }
 
     const update_entity = (id) => (updated_fields) => {
@@ -46,7 +54,12 @@ export const EntityProvider = ({children}) => {
 
     // access the entities structure from these filtered methods.
     return (
-        <EntityContext.Provider value={{entities, type_from_id, add_entity, remove_entity, query_entities, update_entity}}>
+        <EntityContext.Provider value={{entities, 
+            // management
+            add_entity, remove_entity, update_entity,
+            // queries
+            has_all_mixins, has_one_mixin, or_query, and_query,
+        }}>
             {children}
         </EntityContext.Provider>
     )

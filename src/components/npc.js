@@ -1,20 +1,18 @@
 import React, { useEffect } from "react";
-import { EntityData, useEntity } from "./entity";
-import { PhysicalEntityData } from "../classes";
 import { useEntityContext } from "../providers/entity_provider";
 
 import PubSub from "pubsub-js";
 import { PhysTypes } from "../providers/physics_provider";
+import { base_factory_mixin, entity_mixin, label_mixin, physical_mixin, pipe } from "../factory";
+import { PLAYER_MIXIN } from "./player";
 
-const NPC = () => {
-    const {self} = useEntity();
-
-    const {type_from_id} = useEntityContext();
+const NPC = ({self}) => {
+    const {has_all_mixins} = useEntityContext();
 
     useEffect(() => {
         const token = PubSub.subscribe(PhysTypes.JUST_COLLIDING, (msg, data) => {
             if (data.one === self.id) {
-                if (type_from_id(data.two) === 'PlayerData')
+                if (has_all_mixins(data.two, [PLAYER_MIXIN]))
                 {
                     alert("hello.");
                 }
@@ -22,7 +20,7 @@ const NPC = () => {
         });
 
         return () => {PubSub.unsubscribe(token)};
-    }, [self, type_from_id]);
+    }, [self, has_all_mixins]);
 
     if (self.box === undefined) return null;
     return (
@@ -33,17 +31,19 @@ const NPC = () => {
             top: self.box.y,
             width: self.box.w,
             height: self.box.h,
-            background: self.color,
+            background: 'red',
         }}
         ></div>
     );
 }
 
-export class NPCData extends PhysicalEntityData {
-    static component_fn = NPC;
+export const NPC_MIXIN = 'o_npc';
 
-    constructor(x = 50, y = 50, color = "red") {
-        super(x, y, 50, 50);
-        this.color = color;
-    }
+export const make_npc = (x, y) => {
+    return pipe(
+        base_factory_mixin,
+        entity_mixin(NPC),
+        physical_mixin(x, y, 50, 50),
+        label_mixin(NPC_MIXIN),
+    )();
 }
