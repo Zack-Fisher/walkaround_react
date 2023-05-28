@@ -4,8 +4,7 @@ import { PhysTypes } from "../../providers/physics_provider";
 
 import PubSub from "pubsub-js";
 import { useEntityContext } from "../../providers/entity_provider";
-import { NPC_MIXIN } from "./npc";
-import { PLAYER_MIXIN } from "./player";
+import { CHARACTER_MIXIN } from "./character";
 
 const Item = ({self, remove_self}) => {
     const {has_all_mixins} = useEntityContext();
@@ -13,7 +12,7 @@ const Item = ({self, remove_self}) => {
     useEffect(() => {
         const token = PubSub.subscribe(PhysTypes.JUST_COLLIDING, (msg, data) => {
             if (data.one === self.id) {
-                if (has_all_mixins(data.two, [PLAYER_MIXIN])) {
+                if (has_all_mixins(data.two, [CHARACTER_MIXIN])) {
                     remove_self();
                 }
             }

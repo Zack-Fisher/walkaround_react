@@ -1,13 +1,19 @@
-import React, { useContext } from "react";
+import React, { useCallback, useContext, useEffect } from "react";
 import { createContext } from "react";
 import { useState } from "react";
 import { make_npc } from "../components/game_objects/npc";
 import { make_item } from "../components/game_objects/item";
+import { CHARACTER_MIXIN, make_character } from "../components/game_objects/character";
+import { useWebSocket } from "./websocket_provider";
+
+// symlink the subproject to share files with the backend
+import * as M from 'walkaround_backend/src/messages';
 
 const EntityContext = createContext();
 
 export const EntityProvider = ({children}) => {
     const [entities, setEntities] = useState([
+        make_character(100, 100),
         make_item(500, 200),
         make_npc(60, 60, "hello brother"),
     ]);
@@ -26,9 +32,9 @@ export const EntityProvider = ({children}) => {
     const or_query = (mixin_list) => {
         return entities.filter(entity => entity.has_one_mixin(mixin_list));
     }
-    const and_query = (mixin_list) => {
+    const and_query = useCallback((mixin_list) => {
         return entities.filter(entity => entity.has_all_mixins(mixin_list));
-    }
+    }, [entities])
 
     const has_one_mixin = (id, mixin_list) => {
         const entity = entities.find(entity => entity.id === id);
@@ -51,6 +57,30 @@ export const EntityProvider = ({children}) => {
         const new_ents = entities.map(entity => entity.id === id ? update_individual(entity) : entity);
         setEntities(new_ents);
     }
+
+    const {send} = useWebSocket();
+
+    // now, interact with the websocket on an interval, providing entity updates
+    // for the server to process. also, process the server's messages and estimate the 
+    // current state.
+    useEffect(() => {
+        // once a second update the entity velocity.
+        const interval = setInterval(() => {
+            const characters = and_query([CHARACTER_MIXIN]);
+
+            // update the server with the current state of the characters.
+            characters.forEach(character => {
+                send(
+                    M.make_property_update(
+                        "velocity",
+                        character.velocity,
+                    )
+                )
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [entities, and_query, send]);
 
     // access the entities structure from these filtered methods.
     return (

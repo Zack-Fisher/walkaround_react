@@ -4,7 +4,6 @@ import { useEntityContext } from "../../providers/entity_provider";
 import PubSub from "pubsub-js";
 import { base_factory_mixin, entity_mixin, label_mixin, physical_mixin, pipe } from "../../factory";
 import { PhysTypes } from "../../providers/physics_provider";
-import { PLAYER_MIXIN } from "./player";
 import Textbox from "../helpers/textbox";
 
 const NPC = ({self}) => {
@@ -14,7 +13,7 @@ const NPC = ({self}) => {
     useEffect(() => {
         const token = PubSub.subscribe(PhysTypes.JUST_COLLIDING, (msg, data) => {
             if (data.one === self.id) {
-                if (has_all_mixins(data.two, [PLAYER_MIXIN])) {
+                if (has_all_mixins(data.two, [])) {
                     setIsTalking(true);
                     setTimeout(() => {
                         setIsTalking(false);
